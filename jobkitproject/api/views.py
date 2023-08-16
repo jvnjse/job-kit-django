@@ -104,7 +104,6 @@ class LoginView(APIView):
 
             if user is not None:
                 if user.is_verified:
-                    # Generate access token and refresh token
                     refresh = RefreshToken.for_user(user)
                     access_token = str(refresh.access_token)
 
