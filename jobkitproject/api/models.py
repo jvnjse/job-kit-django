@@ -80,7 +80,104 @@ class OTP(models.Model):
         return timezone.now() >= self.expiry_time
 
     def save(self, *args, **kwargs):
-        if not self.id:  # Only calculate expiry_time if it's a new object
-            self.created_at = timezone.now()  # Set created_at to current time
+        if not self.id:
+            self.created_at = timezone.now()
             self.expiry_time = self.created_at + timezone.timedelta(minutes=10)
         super().save(*args, **kwargs)
+
+
+class Employee(models.Model):
+    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=255)
+    profile_image = models.ImageField(upload_to="profile_image")
+    dob = models.DateField()
+    mobile = models.CharField(max_length=20)
+    address_line1 = models.CharField(max_length=255)
+    address_line2 = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
+    state = models.CharField(max_length=255)
+    pin_code = models.CharField(max_length=10)
+
+
+class EmployeeExperienceEducation(models.Model):
+    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    course_job_name = models.CharField(max_length=255, null=True)
+    organization_id = models.ForeignKey("Company", on_delete=models.CASCADE)
+    from_date = models.DateField()
+    to_date = models.DateField()
+    is_education = models.BooleanField(default=False)
+    is_experience = models.BooleanField(default=False)
+    experience_education_document = models.FileField(upload_to="ed_ex_documents")
+
+
+class EmployeeAppliedJobs(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    saved_job_id = models.IntegerField()
+    applied_job_id = models.IntegerField()
+
+
+class EmployeeJobCategory(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    category_id = models.IntegerField()
+    new_applied_category = models.CharField(max_length=255)
+    skills = models.CharField(max_length=255)
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+class Company(models.Model):
+    company_user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    # company_email = models.EmailField()
+    company_name = models.CharField(max_length=255)
+    address_line1 = models.CharField(max_length=255)
+    address_line2 = models.CharField(max_length=255)
+    mobile = models.CharField(max_length=20, null=True)
+    city = models.CharField(max_length=255)
+    state = models.CharField(max_length=255)
+    company_unique_id = models.CharField(max_length=255)
+    pin_code = models.CharField(max_length=10)
+
+    # employee_user_id = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    # job_name = models.CharField(max_length=255)
+    # logo_image = models.ImageField(upload_to="company_logos/")
+    # job_position_in_company = models.CharField(max_length=255)
+    # joined_date = models.DateField()
+    # end_date = models.DateField()
+    # is_working = models.BooleanField(default=False)
+    # is_working_employee = models.BooleanField(default=False)
+
+
+class JobDetails(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    job_name = models.CharField(max_length=255)
+    job_description = models.TextField()
+    key_responsibilities = models.TextField()
+    experience_required = models.CharField(max_length=255)
+    qualification_required = models.CharField(max_length=255)
+    key_skills = models.CharField(max_length=255)
+    date_posted = models.DateField()
+    application_last_date = models.DateField()
+    package_details = models.CharField(max_length=255)
+    job_type = models.CharField(max_length=255)
+    job_category = models.CharField(max_length=255)
+    company_type = models.CharField(max_length=255)
+    company_website = models.CharField(max_length=255)
+    about_company = models.CharField(max_length=255)
+    company_verified = models.BooleanField(default=False)
+
+
+class CompanyDepartment(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    company_department_name = models.CharField(max_length=255)
+    sub_category = models.CharField(max_length=255)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, Employee, EmployeeExperienceEducation, Company
 from django.contrib.auth import get_user_model
 
 
@@ -27,11 +27,11 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return instance
 
 
-class EmployeeSerializer(CustomUserSerializer):
+class EmployeeregisterSerializer(CustomUserSerializer):
     user_type = serializers.CharField(default="employee", write_only=True)
 
 
-class CompanySerializer(CustomUserSerializer):
+class CompanyregisterSerializer(CustomUserSerializer):
     user_type = serializers.CharField(default="company", write_only=True)
 
 
@@ -61,3 +61,47 @@ class LoginSerializer(serializers.Serializer):
 
 class OTPVerificationSerializer(serializers.Serializer):
     otp_code = serializers.CharField(max_length=6)
+
+
+class EmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = "__all__"
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = "__all__"
+
+
+class EmployeeExperienceSerializer(serializers.ModelSerializer):
+    experience_education_document = serializers.FileField(use_url=False)
+
+    class Meta:
+        model = EmployeeExperienceEducation
+        fields = [
+            "user_id",
+            "course_job_name",
+            "organization_id",
+            "from_date",
+            "to_date",
+            "is_experience",
+            "experience_education_document",
+        ]
+
+
+class EmployeeEducationSerializer(serializers.ModelSerializer):
+    experience_education_document = serializers.FileField(use_url=False)
+
+    class Meta:
+        model = EmployeeExperienceEducation
+        fields = [
+            "user_id",
+            "course_job_name",
+            "organization_id",
+            "from_date",
+            "to_date",
+            "is_education",
+            "experience_education_document",
+        ]
