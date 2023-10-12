@@ -7,6 +7,8 @@ from .views import (
     EmployeeExperienceView,
     EmployeeEducationView,
     CompanyPersonalInfo,
+    CompanyListView,
+    EmployeeSkillsAPIView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -23,7 +25,7 @@ urlpatterns = [
         name="employee_personal_info",
     ),
     path(
-        "employee/experience/",
+        "employee/<int:user_id>/experience/",
         EmployeeExperienceView.as_view(),
         name="employee_experience",
     ),
@@ -32,9 +34,15 @@ urlpatterns = [
         EmployeeEducationView.as_view(),
         name="employee_education",
     ),
-    # company
     path(
-        "company/<int:user_id>/",
+        "employees/<int:employee_id>/skills/",
+        EmployeeSkillsAPIView.as_view(),
+        name="employee-skills",
+    ),
+    # company
+    path("companies/", CompanyListView.as_view(), name="company-list"),
+    path(
+        "company/<int:company_user_id>/",
         CompanyPersonalInfo.as_view(),
         name="company_personal_info",
     ),

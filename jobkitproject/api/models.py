@@ -86,43 +86,6 @@ class OTP(models.Model):
         super().save(*args, **kwargs)
 
 
-class Employee(models.Model):
-    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    full_name = models.CharField(max_length=255)
-    profile_image = models.ImageField(upload_to="profile_image")
-    dob = models.DateField()
-    mobile = models.CharField(max_length=20)
-    address_line1 = models.CharField(max_length=255)
-    address_line2 = models.CharField(max_length=255)
-    city = models.CharField(max_length=255)
-    state = models.CharField(max_length=255)
-    pin_code = models.CharField(max_length=10)
-
-
-class EmployeeExperienceEducation(models.Model):
-    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    course_job_name = models.CharField(max_length=255, null=True)
-    organization_id = models.ForeignKey("Company", on_delete=models.CASCADE)
-    from_date = models.DateField()
-    to_date = models.DateField()
-    is_education = models.BooleanField(default=False)
-    is_experience = models.BooleanField(default=False)
-    experience_education_document = models.FileField(upload_to="ed_ex_documents")
-
-
-class EmployeeAppliedJobs(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    saved_job_id = models.IntegerField()
-    applied_job_id = models.IntegerField()
-
-
-class EmployeeJobCategory(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    category_id = models.IntegerField()
-    new_applied_category = models.CharField(max_length=255)
-    skills = models.CharField(max_length=255)
-
-
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
@@ -139,7 +102,7 @@ class EmployeeJobCategory(models.Model):
 class Company(models.Model):
     company_user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     # company_email = models.EmailField()
-    company_name = models.CharField(max_length=255)
+    company_name = models.CharField(max_length=255, unique=True)
     address_line1 = models.CharField(max_length=255)
     address_line2 = models.CharField(max_length=255)
     mobile = models.CharField(max_length=20, null=True)
@@ -147,6 +110,54 @@ class Company(models.Model):
     state = models.CharField(max_length=255)
     company_unique_id = models.CharField(max_length=255)
     pin_code = models.CharField(max_length=10)
+
+
+class Organization(models.Model):
+    organization_name = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return self.organization_name
+
+
+class Skill(models.Model):
+    name = models.CharField(unique=True, max_length=255)
+
+
+class Employee(models.Model):
+    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=255)
+    profile_image = models.ImageField(upload_to="profile_image")
+    dob = models.DateField()
+    mobile = models.CharField(max_length=20)
+    address_line1 = models.CharField(max_length=255)
+    address_line2 = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
+    state = models.CharField(max_length=255)
+    pin_code = models.CharField(max_length=10)
+    skills = models.ManyToManyField(Skill, blank=True)
+
+
+class EmployeeEducation(models.Model):
+    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    course_job_name = models.CharField(max_length=255, null=True)
+    organization_name = models.ForeignKey(
+        Organization, to_field="organization_name", on_delete=models.CASCADE
+    )
+    from_date = models.DateField()
+    to_date = models.DateField()
+    education_document = models.FileField(upload_to="ed_ex_documents")
+
+
+class EmployeeAppliedJobs(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    saved_job_id = models.IntegerField()
+    applied_job_id = models.IntegerField()
+
+
+class EmployeeJobCategory(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    category_id = models.IntegerField()
+    new_applied_category = models.CharField(max_length=255)
 
     # employee_user_id = models.ForeignKey(Employee, on_delete=models.CASCADE)
     # job_name = models.CharField(max_length=255)

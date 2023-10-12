@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import CustomUser, Employee, EmployeeExperienceEducation, Company
+from .models import (
+    CustomUser,
+    Employee,
+    EmployeeEducation,
+    Company,
+    Skill,
+    Organization,
+)
 from django.contrib.auth import get_user_model
 
 
@@ -63,9 +70,9 @@ class OTPVerificationSerializer(serializers.Serializer):
     otp_code = serializers.CharField(max_length=6)
 
 
-class EmployeeSerializer(serializers.ModelSerializer):
+class SkillSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Employee
+        model = Skill
         fields = "__all__"
 
 
@@ -75,15 +82,21 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class EmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = "__all__"
+
+
 class EmployeeExperienceSerializer(serializers.ModelSerializer):
     experience_education_document = serializers.FileField(use_url=False)
 
     class Meta:
-        model = EmployeeExperienceEducation
+        model = EmployeeEducation
         fields = [
             "user_id",
             "course_job_name",
-            "organization_id",
+            "organization_name",
             "from_date",
             "to_date",
             "is_experience",
@@ -91,17 +104,37 @@ class EmployeeExperienceSerializer(serializers.ModelSerializer):
         ]
 
 
+class OrganizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = "__all__"
+
+
 class EmployeeEducationSerializer(serializers.ModelSerializer):
-    experience_education_document = serializers.FileField(use_url=False)
+    education_document = serializers.FileField(use_url=False)
+    organization = OrganizationSerializer()
 
     class Meta:
-        model = EmployeeExperienceEducation
+        model = EmployeeEducation
         fields = [
             "user_id",
             "course_job_name",
-            "organization_id",
+            "organization",
             "from_date",
             "to_date",
-            "is_education",
-            "experience_education_document",
+            "education_document",
         ]
+
+    def create(self, validated_data):
+        organization_name = validated_data.pop("organization_name")
+        # print("ssss", organization_name)
+        employee_education = EmployeeEducation.objects.create(
+            organization_name=organization_name, **validated_data
+        )
+        return employee_education
+
+
+class CompanyListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ["id", "company_name"]
