@@ -7,6 +7,7 @@ from .models import (
     Employee,
     Company,
     EmployeeEducation,
+    EmployeeExperience,
     Skill,
     Organization,
 )
@@ -18,3 +19,4 @@ admin.site.register(Company)
 admin.site.register(EmployeeEducation)
 admin.site.register(Skill)
 admin.site.register(Organization)
+admin.site.register(EmployeeExperience)

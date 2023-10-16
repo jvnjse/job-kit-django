@@ -100,27 +100,29 @@ class OTP(models.Model):
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 class Company(models.Model):
-    company_user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    company_user_id = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, blank=True, null=True
+    )
     # company_email = models.EmailField()
     company_name = models.CharField(max_length=255, unique=True)
-    address_line1 = models.CharField(max_length=255)
-    address_line2 = models.CharField(max_length=255)
-    mobile = models.CharField(max_length=20, null=True)
-    city = models.CharField(max_length=255)
-    state = models.CharField(max_length=255)
-    company_unique_id = models.CharField(max_length=255)
-    pin_code = models.CharField(max_length=10)
-
-
-class Organization(models.Model):
-    organization_name = models.CharField(max_length=255, unique=True)
+    address_line1 = models.CharField(max_length=255, blank=True, null=True)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    mobile = models.CharField(max_length=20, blank=True, null=True)
+    city = models.CharField(max_length=255, blank=True, null=True)
+    state = models.CharField(max_length=255, blank=True, null=True)
+    company_unique_id = models.CharField(max_length=255, blank=True, null=True)
+    pin_code = models.CharField(max_length=10, blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.organization_name
+        return self.company_name
 
 
 class Skill(models.Model):
     name = models.CharField(unique=True, max_length=255)
+
+    def __str__(self):
+        return self.name
 
 
 class Employee(models.Model):
@@ -136,16 +138,37 @@ class Employee(models.Model):
     pin_code = models.CharField(max_length=10)
     skills = models.ManyToManyField(Skill, blank=True)
 
+    def __str__(self):
+        return self.full_name
+
+
+class Organization(models.Model):
+    organization_name = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return self.organization_name
+
 
 class EmployeeEducation(models.Model):
     user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
-    course_job_name = models.CharField(max_length=255, null=True)
+    course_name = models.CharField(max_length=255, null=True)
     organization_name = models.ForeignKey(
         Organization, to_field="organization_name", on_delete=models.CASCADE
     )
     from_date = models.DateField()
     to_date = models.DateField()
-    education_document = models.FileField(upload_to="ed_ex_documents")
+    education_document = models.FileField(upload_to="ed_documents")
+
+
+class EmployeeExperience(models.Model):
+    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    job_title = models.CharField(max_length=255, null=True)
+    company_name = models.ForeignKey(
+        Company, to_field="company_name", on_delete=models.CASCADE
+    )
+    from_date = models.DateField()
+    to_date = models.DateField()
+    experience_document = models.FileField(upload_to="ex_documents")
 
 
 class EmployeeAppliedJobs(models.Model):

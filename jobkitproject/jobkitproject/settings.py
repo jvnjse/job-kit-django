@@ -164,10 +164,9 @@ AUTHENTICATION_BACKENDS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 
-CORS_ALLOW_HEADERS = [
-    "formdata",
-]
+CORS_ALLOW_HEADERS = ["formdata", "content-type"]
 
 
 AUTH_USER_MODEL = "api.CustomUser"
@@ -181,3 +180,18 @@ EMAIL_HOST_USER = "jeevanjose2016@gmail.com"
 EMAIL_HOST_PASSWORD = "spugpleknszdhaqx"
 
 # CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": "debug.log",
+        },
+    },
+    "root": {
+        "handlers": ["file"],
+        "level": "DEBUG",
+    },
+}

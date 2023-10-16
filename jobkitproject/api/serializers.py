@@ -3,6 +3,7 @@ from .models import (
     CustomUser,
     Employee,
     EmployeeEducation,
+    EmployeeExperience,
     Company,
     Skill,
     Organization,
@@ -83,55 +84,49 @@ class CompanySerializer(serializers.ModelSerializer):
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
+    skills = serializers.StringRelatedField(many=True)
+
     class Meta:
         model = Employee
         fields = "__all__"
 
 
-class EmployeeExperienceSerializer(serializers.ModelSerializer):
-    experience_education_document = serializers.FileField(use_url=False)
+class EmployeeSKillSerializer(serializers.ModelSerializer):
+    skills = serializers.StringRelatedField(many=True)
 
     class Meta:
-        model = EmployeeEducation
+        model = Employee
+        fields = fields = ["user_id", "skills"]
+
+
+class EmployeeExperienceSerializer(serializers.ModelSerializer):
+    experience_document = serializers.FileField(use_url=False)
+
+    class Meta:
+        model = EmployeeExperience
         fields = [
             "user_id",
-            "course_job_name",
-            "organization_name",
+            "job_title",
+            "company_name",
             "from_date",
             "to_date",
-            "is_experience",
-            "experience_education_document",
+            "experience_document",
         ]
-
-
-class OrganizationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Organization
-        fields = "__all__"
 
 
 class EmployeeEducationSerializer(serializers.ModelSerializer):
     education_document = serializers.FileField(use_url=False)
-    organization = OrganizationSerializer()
 
     class Meta:
         model = EmployeeEducation
         fields = [
             "user_id",
-            "course_job_name",
-            "organization",
+            "course_name",
+            "organization_name",
             "from_date",
             "to_date",
             "education_document",
         ]
-
-    def create(self, validated_data):
-        organization_name = validated_data.pop("organization_name")
-        # print("ssss", organization_name)
-        employee_education = EmployeeEducation.objects.create(
-            organization_name=organization_name, **validated_data
-        )
-        return employee_education
 
 
 class CompanyListSerializer(serializers.ModelSerializer):

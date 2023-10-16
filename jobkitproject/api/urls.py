@@ -25,7 +25,7 @@ urlpatterns = [
         name="employee_personal_info",
     ),
     path(
-        "employee/<int:user_id>/experience/",
+        "employee/experience/",
         EmployeeExperienceView.as_view(),
         name="employee_experience",
     ),
@@ -35,7 +35,7 @@ urlpatterns = [
         name="employee_education",
     ),
     path(
-        "employees/<int:employee_id>/skills/",
+        "employees/<int:user_id>/skills/",
         EmployeeSkillsAPIView.as_view(),
         name="employee-skills",
     ),

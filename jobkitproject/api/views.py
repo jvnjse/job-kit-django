@@ -12,6 +12,7 @@ from .models import (
     OTP,
     Employee,
     EmployeeEducation,
+    EmployeeExperience,
     Company,
     Skill,
     Organization,
@@ -28,6 +29,7 @@ from .serializers import (
     EmployeeEducationSerializer,
     CompanyListSerializer,
     SkillSerializer,
+    EmployeeSKillSerializer,
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -178,11 +180,19 @@ class EmployeePersonalInfo(APIView):
 
 
 class EmployeeEducationView(APIView):
+    def get(self, request):
+        user_id = request.GET.get("id")
+        try:
+            education = EmployeeEducation.objects.filter(user_id=user_id)
+            serializer = EmployeeEducationSerializer(education, many=True)
+            return Response(serializer.data)
+        except EmployeeEducation.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
     def post(self, request):
         data = request.data
         user_id = data.get("user_id", None)
-
-        organization_name = data.get("organization", None)
+        organization_name = data.get("organization_name")
 
         try:
             user = CustomUser.objects.get(id=user_id)
@@ -196,30 +206,36 @@ class EmployeeEducationView(APIView):
             organization_name=organization_name
         )
 
-        education = EmployeeEducation(
-            user_id=user,
-            course_job_name=data.get("course_job_name", None),
-            organization_name=organization,
-            from_date=data.get("from_date", None),
-            to_date=data.get("to_date", None),
-            education_document=data.get("education_document", None),
-        )
-        education.save()
+        education = EmployeeEducation.objects.filter(
+            user_id=user, organization_name__organization_name=organization_name
+        ).first()
+
+        if education:
+            education.course_name = data.get("course_name", education.course_name)
+            education.from_date = data.get("from_date", education.from_date)
+            education.to_date = data.get("to_date", education.to_date)
+            education.education_document = data.get(
+                "education_document", education.education_document
+            )
+            education.save()
+        else:
+            organization, created = Organization.objects.get_or_create(
+                organization_name=organization_name
+            )
+            education = EmployeeEducation(
+                user_id=user,
+                course_name=data.get("course_name", None),
+                organization_name=organization,
+                from_date=data.get("from_date", None),
+                to_date=data.get("to_date", None),
+                education_document=data.get("education_document", None),
+            )
+            education.save()
 
         return Response(
-            "EmployeeEducation created successfully.", status=status.HTTP_201_CREATED
+            "EmployeeEducation created or updated successfully.",
+            status=status.HTTP_201_CREATED,
         )
-
-    # def post(self, request):
-    #     serializer = EmployeeEducationSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         organization_name = serializer.validated_data["organization_name"]
-    #         organization, created = Organization.objects.get_or_create(
-    #             organization_name=organization_name
-    #         )
-    #         serializer.save(organization_name=organization)
-    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request):
         try:
@@ -240,24 +256,60 @@ class EmployeeEducationView(APIView):
 
 
 class EmployeeExperienceView(APIView):
-    def get(self, request, *args, **kwargs):
-        user_id = kwargs["user_id"]
+    def get(self, request):
+        user_id = request.GET.get("id")
         try:
-            experience = EmployeeEducation.objects.filter(
-                user_id=user_id, is_experience=True
-            )
+            experience = EmployeeExperience.objects.filter(user_id=user_id)
             serializer = EmployeeExperienceSerializer(experience, many=True)
             return Response(serializer.data)
-        except EmployeeEducation.DoesNotExist:
+        except EmployeeExperience.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def post(self, request, *args, **kwargs):
-        request.data["is_experience"] = True
-        serializer = EmployeeExperienceSerializer(data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        data = request.data
+        user_id = data.get("user_id", None)
+        company_name = data.get("company_name")
+
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            return Response(
+                f"CustomUser with ID {user_id} not found.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        company, created = Company.objects.get_or_create(company_name=company_name)
+
+        experience = EmployeeExperience.objects.filter(
+            user_id=user, company_name__company_name=company_name
+        ).first()
+
+        if experience:
+            experience.job_title = data.get("job_title", experience.job_title)
+            experience.from_date = data.get("from_date", experience.from_date)
+            experience.to_date = data.get("to_date", experience.to_date)
+            experience.experience_document = data.get(
+                "experience_document", experience.experience_document
+            )
+            experience.save()
+        else:
+            experience, created = Company.objects.get_or_create(
+                company_name=company_name
+            )
+            experience = EmployeeExperience(
+                user_id=user,
+                job_title=data.get("job_title", None),
+                company_name=experience,
+                from_date=data.get("from_date", None),
+                to_date=data.get("to_date", None),
+                experience_document=data.get("experience_document", None),
+            )
+            experience.save()
+
+        return Response(
+            "Employeeexperience created or updated successfully.",
+            status=status.HTTP_201_CREATED,
+        )
 
     def put(self, request, *args, **kwargs):
         user_id = kwargs["user_id"]
@@ -277,32 +329,40 @@ class EmployeeExperienceView(APIView):
 
 
 class EmployeeSkillsAPIView(APIView):
-    def get(self, request, employee_id):
+    def get(self, request, user_id):
         try:
-            employee = Employee.objects.get(id=employee_id)
-            serializer = EmployeeSerializer(employee)
+            employee = Employee.objects.get(user_id=user_id)
+            serializer = EmployeeSKillSerializer(employee)
             return Response(serializer.data)
         except Employee.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def post(self, request, employee_id):
+    def post(self, request, user_id):
         try:
-            employee = Employee.objects.get(id=employee_id)
-            serializer = SkillSerializer(data=request.data)
-            print("sgcgavcgh")
-            if serializer.is_valid():
-                skill_name = serializer.validated_data["name"]
-                skill, created = Skill.objects.get_or_create(name=skill_name)
-                if created:
+            employee = Employee.objects.get(user_id=user_id)
+
+            if "skills" in request.data and isinstance(request.data["skills"], list):
+                skills_to_add = request.data["skills"]
+                for skill_name in skills_to_add:
+                    skill, created = Skill.objects.get_or_create(name=skill_name)
                     employee.skills.add(skill)
-                else:
-                    employee.skills.add(skill)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            if "name" in serializer.errors:
-                return Response(status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+                return Response(
+                    {"message": f"{len(skills_to_add)} skills added successfully."},
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(
+                    {
+                        "message": "Skill names not provided or provided in an invalid format."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         except Employee.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Employee not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
     def put(self, request, employee_id):
         try:
@@ -357,7 +417,7 @@ class CompanyPersonalInfo(APIView):
 
 class CompanyListView(APIView):
     def get(self, request, *args, **kwargs):
-        companies = Company.objects.all()
+        companies = Company.objects.filter(is_verified=True)
         serializer = CompanyListSerializer(companies, many=True)
         return Response(serializer.data)
 
