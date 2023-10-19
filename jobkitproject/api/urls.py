@@ -9,6 +9,7 @@ from .views import (
     CompanyPersonalInfo,
     CompanyListView,
     EmployeeSkillsAPIView,
+    OrganisationListView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -39,6 +40,8 @@ urlpatterns = [
         EmployeeSkillsAPIView.as_view(),
         name="employee-skills",
     ),
+    # organisation
+    path("organizations/", OrganisationListView.as_view(), name="organisation-list"),
     # company
     path("companies/", CompanyListView.as_view(), name="company-list"),
     path(

@@ -144,6 +144,7 @@ class Employee(models.Model):
 
 class Organization(models.Model):
     organization_name = models.CharField(max_length=255, unique=True)
+    is_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.organization_name
@@ -152,6 +153,7 @@ class Organization(models.Model):
 class EmployeeEducation(models.Model):
     user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
     course_name = models.CharField(max_length=255, null=True)
+    course_description = models.CharField(max_length=500, null=True)
     organization_name = models.ForeignKey(
         Organization, to_field="organization_name", on_delete=models.CASCADE
     )
@@ -163,6 +165,7 @@ class EmployeeEducation(models.Model):
 class EmployeeExperience(models.Model):
     user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
     job_title = models.CharField(max_length=255, null=True)
+    job_description = models.CharField(max_length=500, null=True)
     company_name = models.ForeignKey(
         Company, to_field="company_name", on_delete=models.CASCADE
     )

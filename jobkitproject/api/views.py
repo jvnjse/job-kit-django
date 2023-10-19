@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from .models import (
     CustomUser,
     OTP,
@@ -28,6 +29,7 @@ from .serializers import (
     EmployeeExperienceSerializer,
     EmployeeEducationSerializer,
     CompanyListSerializer,
+    OrganisationListSerializer,
     SkillSerializer,
     EmployeeSKillSerializer,
 )
@@ -89,13 +91,13 @@ class OTPVerificationView(APIView):
 
                 user.is_verified = True
                 user.save()
-                # refresh = RefreshToken.for_user(user)
-                # access_token = str(refresh.access_token)
+                refresh = RefreshToken.for_user(user)
+                access_token = str(refresh.access_token)
 
                 response_data = {
+                    "user_id": user.id,
                     "message": "OTP verification successful",
                     "access_token": access_token,
-                    "refresh_token": str(refresh),
                 }
 
                 return Response(response_data, status=status.HTTP_200_OK)
@@ -120,9 +122,9 @@ class LoginView(APIView):
                     access_token = str(refresh.access_token)
 
                     response_data = {
+                        "user_id": user.id,
                         "message": "Login successful",
                         "access_token": access_token,
-                        "refresh_token": str(refresh),
                     }
                     return Response(response_data, status=status.HTTP_200_OK)
 
@@ -267,7 +269,7 @@ class EmployeeExperienceView(APIView):
 
     def post(self, request):
         data = request.data
-        user_id = data.get("user_id", None)
+        user_id = data.get("user_id")
         company_name = data.get("company_name")
 
         try:
@@ -288,6 +290,9 @@ class EmployeeExperienceView(APIView):
             experience.job_title = data.get("job_title", experience.job_title)
             experience.from_date = data.get("from_date", experience.from_date)
             experience.to_date = data.get("to_date", experience.to_date)
+            experience.job_description = data.get(
+                "job_description", experience.job_description
+            )
             experience.experience_document = data.get(
                 "experience_document", experience.experience_document
             )
@@ -298,11 +303,12 @@ class EmployeeExperienceView(APIView):
             )
             experience = EmployeeExperience(
                 user_id=user,
-                job_title=data.get("job_title", None),
+                job_title=data.get("job_title"),
                 company_name=experience,
-                from_date=data.get("from_date", None),
-                to_date=data.get("to_date", None),
-                experience_document=data.get("experience_document", None),
+                from_date=data.get("from_date"),
+                to_date=data.get("to_date"),
+                job_description=data.get("job_description"),
+                experience_document=data.get("experience_document"),
             )
             experience.save()
 
@@ -330,52 +336,50 @@ class EmployeeExperienceView(APIView):
 
 class EmployeeSkillsAPIView(APIView):
     def get(self, request, user_id):
-        try:
-            employee = Employee.objects.get(user_id=user_id)
-            serializer = EmployeeSKillSerializer(employee)
-            return Response(serializer.data)
-        except Employee.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        employee = get_object_or_404(Employee, user_id=user_id)
+        skills = employee.skills.all()
+        skill_serializer = SkillSerializer(skills, many=True)
+        return Response(skill_serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, user_id):
-        try:
-            employee = Employee.objects.get(user_id=user_id)
+        employee = get_object_or_404(Employee, user_id=user_id)
+        skill_names = request.data.get(
+            "skills", []
+        )  # Assume 'skills' is a list in the JSON request
 
-            if "skills" in request.data and isinstance(request.data["skills"], list):
-                skills_to_add = request.data["skills"]
-                for skill_name in skills_to_add:
-                    skill, created = Skill.objects.get_or_create(name=skill_name)
-                    employee.skills.add(skill)
-
-                return Response(
-                    {"message": f"{len(skills_to_add)} skills added successfully."},
-                    status=status.HTTP_201_CREATED,
-                )
-            else:
-                return Response(
-                    {
-                        "message": "Skill names not provided or provided in an invalid format."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        except Employee.DoesNotExist:
+        if not skill_names:
             return Response(
-                {"message": "Employee not found."}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Skills are required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-    def put(self, request, employee_id):
-        try:
-            employee = Employee.objects.get(id=employee_id)
-            serializer = SkillSerializer(data=request.data)
-            if serializer.is_valid():
-                skill_name = serializer.validated_data["name"]
-                skill, created = Skill.objects.get_or_create(name=skill_name)
-                employee.skills.add(skill)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Employee.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        for skill_name in skill_names:
+            skill, created = Skill.objects.get_or_create(name=skill_name)
+            employee.skills.add(skill)
+
+        return Response(
+            {"message": "Skills added successfully"}, status=status.HTTP_201_CREATED
+        )
+
+    def delete(self, request, user_id):
+        employee = get_object_or_404(Employee, user_id=user_id)
+        skill_name = request.data.get("skills")
+
+        if skill_name:
+            try:
+                skill = Skill.objects.get(name=skill_name)
+                employee.skills.remove(skill)
+                return Response(
+                    {"message": "Skill deleted successfully"},
+                    status=status.HTTP_204_NO_CONTENT,
+                )
+            except Skill.DoesNotExist:
+                return Response(
+                    {"error": "Skill not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            return Response(
+                {"error": "Skill name is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 # ---------------------------------------------------------------------
@@ -419,6 +423,13 @@ class CompanyListView(APIView):
     def get(self, request, *args, **kwargs):
         companies = Company.objects.filter(is_verified=True)
         serializer = CompanyListSerializer(companies, many=True)
+        return Response(serializer.data)
+
+
+class OrganisationListView(APIView):
+    def get(self, request, *args, **kwargs):
+        organizations = Organization.objects.filter(is_verified=True)
+        serializer = OrganisationListSerializer(organizations, many=True)
         return Response(serializer.data)
 
 
