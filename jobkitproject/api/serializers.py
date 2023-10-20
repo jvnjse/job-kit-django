@@ -105,6 +105,7 @@ class EmployeeExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeExperience
         fields = [
+            "id",
             "user_id",
             "job_title",
             "job_description",
@@ -121,6 +122,7 @@ class EmployeeEducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeEducation
         fields = [
+            "id",
             "user_id",
             "course_name",
             "course_description",

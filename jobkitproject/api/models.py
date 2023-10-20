@@ -155,11 +155,11 @@ class EmployeeEducation(models.Model):
     course_name = models.CharField(max_length=255, null=True)
     course_description = models.CharField(max_length=500, null=True)
     organization_name = models.ForeignKey(
-        Organization, to_field="organization_name", on_delete=models.CASCADE
+        Organization, to_field="organization_name", on_delete=models.CASCADE, null=True
     )
     from_date = models.DateField()
     to_date = models.DateField()
-    education_document = models.FileField(upload_to="ed_documents")
+    education_document = models.FileField(upload_to="ed_documents", null=True)
 
 
 class EmployeeExperience(models.Model):
