@@ -1,5 +1,7 @@
 import random
 import string
+import pandas as pd
+import os
 from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib.auth import authenticate, login
@@ -9,6 +11,11 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from api.functions import send_otp_email, generate_otp
 from .models import (
     CustomUser,
     OTP,
@@ -18,6 +25,7 @@ from .models import (
     Company,
     Skill,
     Organization,
+    Company_Employee,
 )
 from .serializers import (
     EmployeeregisterSerializer,
@@ -33,11 +41,8 @@ from .serializers import (
     OrganisationListSerializer,
     SkillSerializer,
     EmployeeSKillSerializer,
+    CompanyEmployeeSerializer,
 )
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
-from api.functions import send_otp_email, generate_otp
 
 
 class RegistrationView(APIView):
@@ -61,7 +66,8 @@ class RegistrationView(APIView):
             send_otp_email(user.id, user.email, generated_otp)
 
             response_data = {
-                "message": "{user_type.capitalize()} registered successfully. Please verify using OTP.",
+                "message": user_type.capitalize()
+                + " registered successfully. Please verify using OTP.",
                 "user": serializer.data,
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
@@ -123,6 +129,7 @@ class LoginView(APIView):
                     access_token = str(refresh.access_token)
 
                     response_data = {
+                        "user": user.user_type,
                         "user_id": user.id,
                         "message": "Login successful",
                         "access_token": access_token,
@@ -147,6 +154,8 @@ class LoginView(APIView):
 
 
 class EmployeePersonalInfo(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         user_id = kwargs["user_id"]
         try:
@@ -183,6 +192,8 @@ class EmployeePersonalInfo(APIView):
 
 
 class EmployeeEducationView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         user_id = request.GET.get("user_id")
         try:
@@ -246,6 +257,7 @@ class EmployeeEducationView(APIView):
 
 
 class SingleEducationView(APIView):
+    permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request, education_id):
@@ -309,6 +321,8 @@ class SingleEducationView(APIView):
 
 
 class EmployeeExperienceView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         user_id = request.GET.get("id")
         try:
@@ -349,27 +363,27 @@ class EmployeeExperienceView(APIView):
             )
             experience.save()
         else:
-            experience, created = Company.objects.get_or_create(
-                company_name=company_name
-            )
+            company, created = Company.objects.get_or_create(company_name=company_name)
             experience = EmployeeExperience(
                 user_id=user,
-                job_title=data.get("job_title"),
-                company_name=experience,
-                from_date=data.get("from_date"),
-                to_date=data.get("to_date"),
-                job_description=data.get("job_description"),
-                experience_document=data.get("experience_document"),
+                job_title=data.get("job_title", None),
+                company_name=company,
+                job_description=data.get("job_description", None),
+                from_date=data.get("from_date", None),
+                to_date=data.get("to_date", None),
+                experience_document=data.get("experience_document", None),
             )
             experience.save()
 
         return Response(
-            "Employeeexperience created or updated successfully.",
+            "Employee Experience created or updated successfully.",
             status=status.HTTP_201_CREATED,
         )
 
 
 class SingleExperienceView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, experience_id):
         try:
             experience = EmployeeExperience.objects.get(id=experience_id)
@@ -388,7 +402,7 @@ class SingleExperienceView(APIView):
 
         data = request.data
         user_id = data.get("user_id", None)
-        organization_name = data.get("organization_name")
+        company_name = data.get("company_name")
 
         if user_id:
             try:
@@ -399,18 +413,19 @@ class SingleExperienceView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        organization, created = Organization.objects.get_or_create(
-            organization_name=organization_name
-        )
+        company, created = Company.objects.get_or_create(company_name=company_name)
 
         experience.job_title = data.get("job_title", experience.job_title)
         experience.from_date = data.get("from_date", experience.from_date)
-        experience.to_date = data.get("end_date", experience.to_date)
+        experience.to_date = data.get("to_date", experience.to_date)
         experience.job_description = data.get(
             "job_description", experience.job_description
         )
+        experience.experience_document = data.get(
+            "experience_document", experience.experience_document
+        )
         experience.user_id = user if user_id else experience.user_id
-        experience.organization_name = organization
+        experience.company_name = company
         experience.save()
 
         serializer = EmployeeExperienceSerializer(experience)
@@ -426,6 +441,8 @@ class SingleExperienceView(APIView):
 
 
 class EmployeeSkillsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, user_id):
         employee = get_object_or_404(Employee, user_id=user_id)
         skills = employee.skills.all()
@@ -481,36 +498,89 @@ class EmployeeSkillsAPIView(APIView):
 
 
 class CompanyPersonalInfo(APIView):
-    def get(self, request, *args, **kwargs):
-        company_user_id = kwargs["company_user_id"]
-        try:
-            company = Company.objects.get(company_user_id=company_user_id)
-            serializer = CompanySerializer(company)
-            return Response(serializer.data)
-        except Company.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+    permission_classes = [IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
-        serializer = CompanySerializer(data=request.data)
+    def get(self, request, user_id):
+        try:
+            companies = Company.objects.all()
+            serializer = CompanySerializer(companies, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def post(self, request, user_id):
+        data = request.data.copy()  # Create a copy of the QueryDict
+        data["company_user_id"] = user_id
+
+        existing_company = Company.objects.filter(company_user_id=user_id).first()
+
+        if existing_company:
+            serializer = CompanySerializer(existing_company, data=data)
+        else:
+            serializer = CompanySerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def download_excel_file(request):
+    file_path = os.path.join(settings.MEDIA_ROOT, "AddEmployeeExcel.xlsx")
+
+    if os.path.exists(file_path):
+        # Get the URL for the file
+        file_url = os.path.join(settings.MEDIA_URL, "AddEmployeeExcel.xlsx")
+        return JsonResponse({"download_url": file_url})
+
+    return JsonResponse({"error": "File not found"}, status=404)
+
+
+@api_view(["POST"])
+def import_data(request, company_user_id):
+    try:
+        excel_file = request.FILES["excel_file"]
+        df = pd.read_excel(excel_file)
+        data = df.to_dict("records")
+
+        for record in data:
+            record["company_user_id"] = company_user_id
+
+        serializer = CompanyEmployeeSerializer(data=data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except KeyError:
+        return Response(
+            "Excel file not found in the request.", status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class CompanyEmployeeAPIView(APIView):
+    def get(self, request, company_user_id):
+        company_employees = Company_Employee.objects.filter(
+            company_user_id=company_user_id
+        )
+        serializer = CompanyEmployeeSerializer(company_employees, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, company_user_id):
+        data = request.data
+        data["company_user_id"] = company_user_id
+        serializer = CompanyEmployeeSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, *args, **kwargs):
-        company_user_id = kwargs["company_user_id"]
-        try:
-            company = Company.objects.get(company_user_id=company_user_id)
-            serializer = CompanySerializer(company, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Company.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
 
 class CompanyListView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         companies = Company.objects.filter(is_verified=True)
         serializer = CompanyListSerializer(companies, many=True)
@@ -518,6 +588,8 @@ class CompanyListView(APIView):
 
 
 class OrganisationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         organizations = Organization.objects.filter(is_verified=True)
         serializer = OrganisationListSerializer(organizations, many=True)

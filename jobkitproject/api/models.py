@@ -96,22 +96,20 @@ class OTP(models.Model):
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
+
+
 class Company(models.Model):
     company_user_id = models.ForeignKey(
         CustomUser, on_delete=models.CASCADE, blank=True, null=True
     )
-    # company_email = models.EmailField()
     company_name = models.CharField(max_length=255, unique=True)
     address_line1 = models.CharField(max_length=255, blank=True, null=True)
     address_line2 = models.CharField(max_length=255, blank=True, null=True)
     mobile = models.CharField(max_length=20, blank=True, null=True)
     city = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=255, blank=True, null=True)
-    company_unique_id = models.CharField(max_length=255, blank=True, null=True)
     pin_code = models.CharField(max_length=10, blank=True, null=True)
+    profile_image = models.ImageField(upload_to="company_logo", null=True)
     is_verified = models.BooleanField(default=False)
 
     def __str__(self):
@@ -193,6 +191,15 @@ class EmployeeJobCategory(models.Model):
     # end_date = models.DateField()
     # is_working = models.BooleanField(default=False)
     # is_working_employee = models.BooleanField(default=False)
+
+
+class Company_Employee(models.Model):
+    company_user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    employee_name = models.CharField(max_length=100, null=True)
+    employee_position = models.CharField(max_length=100, null=True)
+    employee_phone_number = models.CharField(max_length=20, null=True)
+    employee_email = models.CharField(max_length=50, null=True)
+    employee_department = models.CharField(max_length=255, null=True)
 
 
 class JobDetails(models.Model):

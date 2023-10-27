@@ -12,6 +12,9 @@ from .views import (
     CompanyListView,
     EmployeeSkillsAPIView,
     OrganisationListView,
+    CompanyEmployeeAPIView,
+    import_data,
+    download_excel_file,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -57,8 +60,15 @@ urlpatterns = [
     # company
     path("companies/", CompanyListView.as_view(), name="company-list"),
     path(
-        "company/<int:company_user_id>/",
+        "company/<int:user_id>/",
         CompanyPersonalInfo.as_view(),
         name="company_personal_info",
     ),
+    path(
+        "company/employee/<int:company_user_id>/",
+        CompanyEmployeeAPIView.as_view(),
+        name="company_personal_info",
+    ),
+    path("import_data/<int:company_user_id>/", import_data, name="import_data"),
+    path("download/excel_file/", download_excel_file, name="download_excel_file"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

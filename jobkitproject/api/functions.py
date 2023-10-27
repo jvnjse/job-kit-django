@@ -5,6 +5,15 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from .models import OTP
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class CustomRefreshToken(RefreshToken):
+    def custom_payload(self, user):
+        payload = super().custom_payload(user)
+        payload["user_type"] = user.user_type
+        return payload
 
 
 def generate_otp(length=6):

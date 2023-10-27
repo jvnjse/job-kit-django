@@ -7,6 +7,7 @@ from .models import (
     Company,
     Skill,
     Organization,
+    Company_Employee,
 )
 from django.contrib.auth import get_user_model
 
@@ -48,17 +49,28 @@ class AdminSerializer(CustomUserSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email_or_username = serializers.CharField()
     password = serializers.CharField()
 
     def validate(self, attrs):
-        email = attrs.get("email")
+        email_or_username = attrs.get("email_or_username")
         password = attrs.get("password")
 
-        try:
-            user = CustomUser.objects.get(email=email)
-        except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("Invalid email")
+        # Check if the input is a valid email address
+        is_email = "@" in email_or_username
+
+        if is_email:
+            # If it's an email, try to find the user by email
+            try:
+                user = CustomUser.objects.get(email=email_or_username)
+            except CustomUser.DoesNotExist:
+                raise serializers.ValidationError("Invalid email")
+        else:
+            # If it's not an email, try to find the user by username
+            try:
+                user = CustomUser.objects.get(username=email_or_username)
+            except CustomUser.DoesNotExist:
+                raise serializers.ValidationError("Invalid username")
 
         if not user.check_password(password):
             raise serializers.ValidationError("Invalid password")
@@ -131,6 +143,12 @@ class EmployeeEducationSerializer(serializers.ModelSerializer):
             "to_date",
             "education_document",
         ]
+
+
+class CompanyEmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company_Employee
+        fields = "__all__"
 
 
 class CompanyListSerializer(serializers.ModelSerializer):
