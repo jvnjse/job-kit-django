@@ -26,6 +26,9 @@ from .models import (
     Skill,
     Organization,
     Company_Employee,
+    CompanySector,
+    CompanyDepartment,
+    JobDetail,
 )
 from .serializers import (
     EmployeeregisterSerializer,
@@ -42,6 +45,7 @@ from .serializers import (
     SkillSerializer,
     EmployeeSKillSerializer,
     CompanyEmployeeSerializer,
+    JobPostingSerializer,
 )
 
 
@@ -300,7 +304,6 @@ class SingleEducationView(APIView):
             "course_description", education.course_description
         )
 
-        # Check if 'education_document' is provided in the request
         if "education_document" in request.FILES:
             education.education_document = request.FILES["education_document"]
 
@@ -451,9 +454,7 @@ class EmployeeSkillsAPIView(APIView):
 
     def post(self, request, user_id):
         employee = get_object_or_404(Employee, user_id=user_id)
-        skill_names = request.data.get(
-            "skills", []
-        )  # Assume 'skills' is a list in the JSON request
+        skill_names = request.data.get("skills", [])
 
         if not skill_names:
             return Response(
@@ -502,7 +503,7 @@ class CompanyPersonalInfo(APIView):
 
     def get(self, request, user_id):
         try:
-            companies = Company.objects.all()
+            companies = Company.objects.filter(company_user_id=user_id)
             serializer = CompanySerializer(companies, many=True)
             return Response(serializer.data)
         except Exception as e:
@@ -511,7 +512,7 @@ class CompanyPersonalInfo(APIView):
             )
 
     def post(self, request, user_id):
-        data = request.data.copy()  # Create a copy of the QueryDict
+        data = request.data.copy()
         data["company_user_id"] = user_id
 
         existing_company = Company.objects.filter(company_user_id=user_id).first()
@@ -532,7 +533,6 @@ def download_excel_file(request):
     file_path = os.path.join(settings.MEDIA_ROOT, "AddEmployeeExcel.xlsx")
 
     if os.path.exists(file_path):
-        # Get the URL for the file
         file_url = os.path.join(settings.MEDIA_URL, "AddEmployeeExcel.xlsx")
         return JsonResponse({"download_url": file_url})
 
@@ -578,6 +578,37 @@ class CompanyEmployeeAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class UpdateSectorAndDepartments(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        sectors = request.data.get("sectors", [])
+        departments = request.data.get("departments", [])
+
+        try:
+            user = Company.objects.get(company_user_id=user_id)
+        except CustomUser.DoesNotExist:
+            return Response("User not found.", status=status.HTTP_404_NOT_FOUND)
+
+        for sector_name in sectors:
+            sector, _ = CompanySector.objects.get_or_create(sector_name=sector_name)
+            user.company_sectors.add(sector)
+
+        for department_data in departments:
+            sector_name = department_data.get("sector_name")
+            department_name = department_data.get("department_name")
+
+            sector, _ = CompanySector.objects.get_or_create(sector_name=sector_name)
+            department, _ = CompanyDepartment.objects.get_or_create(
+                sector=sector,
+                department_name=department_name,
+            )
+
+        return Response(
+            f"Sectors and departments updated for user ID {user_id}.",
+            status=status.HTTP_200_OK,
+        )
+
+
 class CompanyListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -594,6 +625,43 @@ class OrganisationListView(APIView):
         organizations = Organization.objects.filter(is_verified=True)
         serializer = OrganisationListSerializer(organizations, many=True)
         return Response(serializer.data)
+
+
+class JobPostingUserAPI(APIView):
+    def get(self, request, user_id):
+        job_details = JobDetail.objects.filter(company_user_id=user_id)
+        serializer = JobPostingSerializer(job_details, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, user_id):
+        data = request.data
+        job_title = data.get("job_title")
+
+        company_user = get_object_or_404(CustomUser, pk=user_id)
+        skills = data.get("tags", [])
+
+        job_detail = None
+        for skill_name in skills:
+            skill, created = Skill.objects.get_or_create(name=skill_name)
+            if job_detail is None:
+                existing_job = JobDetail.objects.filter(
+                    company_user_id=user_id, job_title=job_title
+                ).first()
+
+                if existing_job:
+                    serializer = JobPostingSerializer(existing_job, data=data)
+                else:
+                    data["company_user_id"] = user_id
+                    serializer = JobPostingSerializer(data=data)
+
+                if serializer.is_valid():
+                    serializer.save()
+                    job_detail = serializer.instance
+
+        if job_detail:
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # class SampleAPI(APIView):

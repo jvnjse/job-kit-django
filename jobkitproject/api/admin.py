@@ -11,6 +11,9 @@ from .models import (
     Skill,
     Organization,
     Company_Employee,
+    CompanyDepartment,
+    CompanySector,
+    JobDetail,
 )
 
 admin.site.register(CustomUser)
@@ -22,3 +25,6 @@ admin.site.register(Skill)
 admin.site.register(Organization)
 admin.site.register(EmployeeExperience)
 admin.site.register(Company_Employee)
+admin.site.register(CompanyDepartment)
+admin.site.register(CompanySector)
+admin.site.register(JobDetail)

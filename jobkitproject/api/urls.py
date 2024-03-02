@@ -15,6 +15,8 @@ from .views import (
     CompanyEmployeeAPIView,
     import_data,
     download_excel_file,
+    UpdateSectorAndDepartments,
+    JobPostingUserAPI,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -68,6 +70,16 @@ urlpatterns = [
         "company/employee/<int:company_user_id>/",
         CompanyEmployeeAPIView.as_view(),
         name="company_personal_info",
+    ),
+    path(
+        "update-sectors-and-departments/",
+        UpdateSectorAndDepartments.as_view(),
+        name="update-sectors-and-departments",
+    ),
+    path(
+        "post/job/<int:user_id>/",
+        JobPostingUserAPI.as_view(),
+        name="user-job-postings-api",
     ),
     path("import_data/<int:company_user_id>/", import_data, name="import_data"),
     path("download/excel_file/", download_excel_file, name="download_excel_file"),

@@ -8,6 +8,7 @@ from .models import (
     Skill,
     Organization,
     Company_Employee,
+    JobDetail,
 )
 from django.contrib.auth import get_user_model
 
@@ -90,6 +91,8 @@ class SkillSerializer(serializers.ModelSerializer):
 
 
 class CompanySerializer(serializers.ModelSerializer):
+    company_sectors = serializers.StringRelatedField(many=True)
+
     class Meta:
         model = Company
         fields = "__all__"
@@ -108,7 +111,7 @@ class EmployeeSKillSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employee
-        fields = fields = ["user_id", "skills"]
+        fields = ["user_id", "skills"]
 
 
 class EmployeeExperienceSerializer(serializers.ModelSerializer):
@@ -161,3 +164,24 @@ class OrganisationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = ["id", "organization_name"]
+
+
+class JobPostingSerializer(serializers.ModelSerializer):
+    tags = serializers.SlugRelatedField(
+        many=True, queryset=Skill.objects.all(), slug_field="name"
+    )
+
+    class Meta:
+        model = JobDetail
+        fields = "__all__"
+
+    def create(self, validated_data):
+        tags_data = validated_data.pop("tags", [])
+        job_detail = JobDetail.objects.create(**validated_data)
+
+        for tag_name in tags_data:
+            # Try to get the skill if it already exists, or create a new one
+            skill, created = Skill.objects.get_or_create(name=tag_name)
+            job_detail.tags.add(skill)
+
+        return job_detail

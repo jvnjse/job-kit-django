@@ -96,6 +96,12 @@ class OTP(models.Model):
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
+class CompanySector(models.Model):
+    sector_name = models.CharField(max_length=100, unique=True)
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.sector_name
 
 
 class Company(models.Model):
@@ -111,6 +117,8 @@ class Company(models.Model):
     pin_code = models.CharField(max_length=10, blank=True, null=True)
     profile_image = models.ImageField(upload_to="company_logo", null=True)
     is_verified = models.BooleanField(default=False)
+    company_website = models.CharField(max_length=100, null=True)
+    company_sectors = models.ManyToManyField(CompanySector, blank=True)
 
     def __str__(self):
         return self.company_name
@@ -202,26 +210,50 @@ class Company_Employee(models.Model):
     employee_department = models.CharField(max_length=255, null=True)
 
 
-class JobDetails(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    job_name = models.CharField(max_length=255)
-    job_description = models.TextField()
-    key_responsibilities = models.TextField()
-    experience_required = models.CharField(max_length=255)
-    qualification_required = models.CharField(max_length=255)
-    key_skills = models.CharField(max_length=255)
-    date_posted = models.DateField()
-    application_last_date = models.DateField()
-    package_details = models.CharField(max_length=255)
-    job_type = models.CharField(max_length=255)
-    job_category = models.CharField(max_length=255)
-    company_type = models.CharField(max_length=255)
-    company_website = models.CharField(max_length=255)
-    about_company = models.CharField(max_length=255)
-    company_verified = models.BooleanField(default=False)
-
-
 class CompanyDepartment(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    company_department_name = models.CharField(max_length=255)
-    sub_category = models.CharField(max_length=255)
+    department_name = models.CharField(max_length=100, null=True)
+    sector = models.ForeignKey(CompanySector, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return self.department_name
+
+
+# class JobDetails(models.Model):
+#     company = models.ForeignKey(Company, on_delete=models.CASCADE)
+#     job_name = models.CharField(max_length=255)
+#     job_description = models.TextField()
+#     key_responsibilities = models.TextField()
+#     experience_required = models.CharField(max_length=255)
+#     qualification_required = models.CharField(max_length=255)
+#     key_skills = models.CharField(max_length=255)
+#     date_posted = models.DateField()
+#     application_last_date = models.DateField()
+#     package_details = models.CharField(max_length=255)
+#     job_type = models.CharField(max_length=255)
+#     job_category = models.CharField(max_length=255)
+#     company_type = models.CharField(max_length=255)
+#     company_website = models.CharField(max_length=255)
+#     about_company = models.CharField(max_length=255)
+#     company_verified = models.BooleanField(default=False)
+
+
+class JobDetail(models.Model):
+    company_user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    job_title = models.CharField(max_length=100)
+    job_description = models.TextField()
+    qualifications_requirements = models.TextField()
+    location = models.CharField(max_length=100)
+    WORK_MODE_CHOICES = [
+        ("Full-Time", "Full-Time"),
+        ("Part-Time", "Part-Time"),
+        ("Contract", "Contract"),
+        ("Remote", "Remote"),
+    ]
+    mode_of_work = models.CharField(max_length=20, choices=WORK_MODE_CHOICES)
+    salary_range_from = models.DecimalField(max_digits=10, decimal_places=2)
+    salary_range_to = models.DecimalField(max_digits=10, decimal_places=2)
+    application_deadline = models.DateField()
+    tags = models.ManyToManyField(Skill, blank=True)
+
+    def __str__(self):
+        return self.job_title
