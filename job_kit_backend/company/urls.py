@@ -8,7 +8,8 @@ from .views import (CompanyPersonalInfo,
                     OrganisationListView,
                     JobPostingUserAPI,
                     JobGetingingUserAPI,
-                    EmployeeDepartment,)
+                    EmployeeDepartment,
+                    CompanyDetailsAPIView)
 
 urlpatterns = [
     path("company/<int:user_id>/",CompanyPersonalInfo.as_view(),name="company_personal_info"),
@@ -21,9 +22,5 @@ urlpatterns = [
     path("post/job/<int:user_id>/", JobPostingUserAPI.as_view(), name="user-job-postings-api"),
     path("get/job/<int:id>/", JobGetingingUserAPI.as_view(), name="user-job-get-api"),
     path("employee/department/", EmployeeDepartment.as_view(), name="emplyee_department"),#department listing
-    path(
-        "company/detail/<int:company_id>/",
-        CompanyDetailsAPIView.as_view(),
-        name="company_detail",
-    ),
-    ]
+    path("company/detail/<int:company_id>/",CompanyDetailsAPIView.as_view(),name="company_detail"),
+]
