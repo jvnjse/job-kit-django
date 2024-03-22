@@ -171,13 +171,21 @@ CORS_ALLOW_HEADERS = ["formdata", "content-type", "authorization"]
 AUTH_USER_MODEL = "authentication.CustomUser"
 
 
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_USE_SSL = False
+# EMAIL_HOST_USER = "dhanoopdharan@gmail.com"
+# EMAIL_HOST_PASSWORD = "oyjvtgldcwmqapub"
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_HOST_USER = "dhanoopdharan@gmail.com"
-EMAIL_HOST_PASSWORD = "oyjvtgldcwmqapub"
+EMAIL_HOST_USER = "lekshmi.anilkumar06@gmail.com"
+EMAIL_HOST_PASSWORD = "noln vkhm vxbv ocjo"
 
 # CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 LOGGING = {

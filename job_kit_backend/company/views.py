@@ -10,7 +10,9 @@ from .models import (Company,
                      CompanyDepartment,
                      CompanySector,
                      Organization,
-                     JobDetail,)
+                     JobDetail,
+                     Department,
+                     )
 
 from authentication.models import CustomUser
 from employee.models import Skill
@@ -20,7 +22,9 @@ from .serializers import (CompanySerializer,
                           CompanyListSerializer,
                           OrganisationListSerializer,
                           JobPostingSerializer,
-                          EmployeeDepartmentSerializer,)
+                          DepartmentSerializer
+                        #   EmployeeDepartmentSerializer,
+                        )
 
 
 from rest_framework import status
@@ -111,7 +115,47 @@ def import_data(request, company_user_id):
         return Response(
             "Excel file not found in the request.", status=status.HTTP_400_BAD_REQUEST
         )
-    
+#----------------------------------------------------------------------------------------------------------
+#test----------------------------
+#---------------------------------------------------------------------------------------------------------   
+# class CompanyEmployeeDepartment(APIView):
+#     def get(self, company_user_id, employee_department):
+#         company_employees = Company_Employee.objects.filter(employee_department = employee_department)   
+#         serializer = CompanyEmployeeSerializer(company_employees, many=True)
+#         return Response(serializer.data)
+#------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------        
+
+
+#--------------------------test-----------------start----   
+class CompanyEmployeeDepartment(APIView):
+    def get(self, request, company_user_id):
+        company_employees = Company_Employee.objects.filter(
+            company_user_id=company_user_id
+        )
+        # Serialize employee data
+        serializer = CompanyEmployeeSerializer(company_employees, many=True)
+
+        # Group employees by department
+        department_employees = {}
+        for employee in serializer.data:
+            for department in employee['employee_department']:
+                department_name = department['department_name']
+                if department_name not in department_employees:
+                    department_employees[department_name] = []
+                department_employees[department_name].append(employee)
+
+        # Create response data
+        response_data = []
+        for department_name, employees in department_employees.items():
+            response_data.append({
+                'department_name': department_name,
+                'employees': employees
+            })
+
+        return Response(response_data)
+
+#--------------------------test-----------------end----   
 
 
 class CompanyEmployeeAPIView(APIView):
@@ -119,16 +163,30 @@ class CompanyEmployeeAPIView(APIView):
         company_employees = Company_Employee.objects.filter(
             company_user_id=company_user_id
         )
-        serializer = EmployeeDepartmentSerializer(company_employees, many=True)
+        serializer = CompanyEmployeeSerializer(company_employees, many=True)
         return Response(serializer.data)
 
     def post(self, request, company_user_id):
         data = request.data
         data["company_user_id"] = company_user_id
+        department_name = data.get("employee_department", [])
+      
+
+        if not department_name:
+             return Response(
+                 {"error": "department is required"}, status=status.HTTP_400_BAD_REQUEST
+             )
+ 
+        departments = []
+        for department_name in department_name:
+             department, created = Department.objects.get_or_create(name=department_name)
+             departments.append(department.id)
+
+        data["employee_department"] = departments
         serializer = CompanyEmployeeSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+             serializer.save()
+             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -205,19 +263,9 @@ class JobPostingUserAPI(APIView):
 
        for skill_name in skills:
             skill, created = Skill.objects.get_or_create(name=skill_name)
-            # company_user .skills.add(skill)
-
-        # return Response(
-        #     {"message": "Skills added successfully"}, status=status.HTTP_201_CREATED
-        # )
-       #------------------------------------------------------------
        print(job_title, skills)
        job_detail = None
-       serializer = None  # Initialize serializer variable here
-       #------------------------------------------------------------------------------
-       # uncommenting start
-       #------------------------------------------------------------------------------
-      # Moved the job creation logic outside the skills loop
+       serializer = None 
        existing_job = JobDetail.objects.filter(
            company_user_id=user_id, job_title=job_title
        ).first()
@@ -275,14 +323,21 @@ class JobGetingingUserAPI(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class EmployeeDepartment(APIView):
+# class EmployeeDepartment(APIView):
+#     def get(self, request):
+#         employee_departments = Company_Employee.objects.filter(
+#             employee_department__isnull=False
+#         ).values_list('employee_department', flat=True).distinct()
+
+#         departments_list = [{'employee_department': dep} for dep in employee_departments]
+
+#         serializer = EmployeeDepartmentSerializer(data=departments_list, many=True)
+#         serializer.is_valid()
+#         return Response(serializer.data)
+    
+class DepartmentApi(APIView):#addedd-----------------------
     def get(self, request):
-        employee_departments = Company_Employee.objects.filter(
-            employee_department__isnull=False
-        ).values_list('employee_department', flat=True).distinct()
-
-        departments_list = [{'employee_department': dep} for dep in employee_departments]
-
-        serializer = EmployeeDepartmentSerializer(data=departments_list, many=True)
-        serializer.is_valid()
-        return Response(serializer.data)
+         departments = Department.objects.all() 
+         serializer = DepartmentSerializer(departments, many=True)
+         return Response(serializer.data)
+    

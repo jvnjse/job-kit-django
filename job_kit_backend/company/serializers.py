@@ -17,9 +17,19 @@ class CompanySerializer(serializers.ModelSerializer):
 
 
 class CompanyEmployeeSerializer(serializers.ModelSerializer):
+    department_names = serializers.SerializerMethodField()
+   
+
     class Meta:
         model = Company_Employee
-        fields = "__all__"
+        fields = ['id', 'employee_name', 'employee_position', 'employee_phone_number', 'employee_email','employee_department','company_user_id', 'department_names' ]
+        read_only_fields = ['department_names']
+
+    def get_department_names(self, obj):
+        return [department.name for department in obj.employee_department.all()]    
+    # class Meta:
+    #     model = Company_Employee
+    #     fields = "__all__"
 
 
 class CompanyListSerializer(serializers.ModelSerializer):
@@ -56,10 +66,10 @@ class JobPostingSerializer(serializers.ModelSerializer):
         return job_detail
     
 
-class EmployeeDepartmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Company_Employee
-        fields = ['employee_department']
+# class EmployeeDepartmentSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Company_Employee
+#         fields = ['employee_department']
 
 
 class DepartmentSerializer(serializers.ModelSerializer):#extraa----------------
