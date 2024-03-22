@@ -14,6 +14,7 @@ from .models import (Company,
 
 from authentication.models import CustomUser
 from employee.models import Skill
+from administrator.models import JobCategory
 
 from .serializers import (CompanySerializer,
                           CompanyEmployeeSerializer,
@@ -119,7 +120,8 @@ class CompanyEmployeeAPIView(APIView):
         company_employees = Company_Employee.objects.filter(
             company_user_id=company_user_id
         )
-        serializer = EmployeeDepartmentSerializer(company_employees, many=True)
+        serializer = CompanyEmployeeSerializer(company_employees, many=True)
+        # serializer = EmployeeDepartmentSerializer(company_employees, many=True)
         return Response(serializer.data)
 
     def post(self, request, company_user_id):
@@ -181,69 +183,125 @@ class OrganisationListView(APIView):
         return Response(serializer.data)
     
 
+# class JobPostingUserAPI(APIView):
+#     def get(self, request, user_id):
+#         job_details = JobDetail.objects.filter(company_user_id=user_id)
+#         serializer = JobPostingSerializer(job_details, many=True)
+#         return Response(serializer.data)
+    
+          
+#     def post(self, request, user_id):
+#        data = request.data
+#        job_title = data.get("job_title")
+   
+#        company_user = get_object_or_404(CustomUser, pk=user_id)
+#        skills = data.get("tags", [])
+#        #------------------------------------------------------------
+       
+     
+
+#        if not skills:
+#             return Response(
+#                 {"error": "Skills are required"}, status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#        for skill_name in skills:
+#             skill, created = Skill.objects.get_or_create(name=skill_name)
+#             # company_user .skills.add(skill)
+
+#         # return Response(
+#         #     {"message": "Skills added successfully"}, status=status.HTTP_201_CREATED
+#         # )
+#        #------------------------------------------------------------
+#        print(job_title, skills)
+#        job_detail = None
+#        serializer = None  # Initialize serializer variable here
+#        #------------------------------------------------------------------------------
+#        # uncommenting start
+#        #------------------------------------------------------------------------------
+#       # Moved the job creation logic outside the skills loop
+#        existing_job = JobDetail.objects.filter(
+#            company_user_id=user_id, job_title=job_title
+#        ).first()
+   
+#        if existing_job:
+#            print("job already exist")
+#            serializer = JobPostingSerializer(existing_job, data=data)
+#        else:
+#        #---------------------------------------------------------------------------------
+#        # uncommenting end
+#        #----------------------------------------------------------------------------------  
+#             print("this block should not work if there is an existing job")
+#             data["company_user_id"] = user_id
+#             serializer = JobPostingSerializer(data=data)
+   
+#        if serializer.is_valid():
+#            serializer.save()
+#            print("saved")
+#            job_detail = serializer.instance
+   
+#        if job_detail:
+#            print("inside job detail")
+#            return Response({"message": "Job  created or updated", "data": serializer.data}, status=status.HTTP_201_CREATED)
+
+#        else:
+#            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    #reworked Jobpostingview by dhanoop
+
 class JobPostingUserAPI(APIView):
     def get(self, request, user_id):
         job_details = JobDetail.objects.filter(company_user_id=user_id)
         serializer = JobPostingSerializer(job_details, many=True)
         return Response(serializer.data)
     
-          
     def post(self, request, user_id):
-       data = request.data
-       job_title = data.get("job_title")
-   
-       company_user = get_object_or_404(CustomUser, pk=user_id)
-       skills = data.get("tags", [])
+        data = request.data
+        job_title = data.get("job_title")
+        
+        job_category_name = data.get("job_category")
+
+        company_user = get_object_or_404(CustomUser, pk=user_id)
+        skills = data.get("tags", [])
        #------------------------------------------------------------
        
      
 
-       if not skills:
+        if not skills:
             return Response(
                 {"error": "Skills are required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-       for skill_name in skills:
-            skill, created = Skill.objects.get_or_create(name=skill_name)
-            # company_user .skills.add(skill)
+        if job_category_name:
+            # Check if the job category exists, if not create it
+            job_category, _ = JobCategory.objects.get_or_create(category_name=job_category_name)
+        else:
+            return Response({"error": "Job category is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # return Response(
-        #     {"message": "Skills added successfully"}, status=status.HTTP_201_CREATED
-        # )
-       #------------------------------------------------------------
-       print(job_title, skills)
-       job_detail = None
-       serializer = None  # Initialize serializer variable here
-       #------------------------------------------------------------------------------
-       # uncommenting start
-       #------------------------------------------------------------------------------
-      # Moved the job creation logic outside the skills loop
-       existing_job = JobDetail.objects.filter(
-           company_user_id=user_id, job_title=job_title
-       ).first()
-   
-       if existing_job:
-           print("job already exist")
-           serializer = JobPostingSerializer(existing_job, data=data)
-       else:
-       #---------------------------------------------------------------------------------
-       # uncommenting end
-       #----------------------------------------------------------------------------------  
-            print("this block should not work if there is an existing job")
+        for skill_name in skills:
+            skill, created = Skill.objects.get_or_create(name=skill_name)
+
+        # Create or update job detail
+        existing_job = JobDetail.objects.filter(
+            company_user_id=user_id, job_title=job_title
+        ).first()
+        
+        if existing_job:
+            serializer = JobPostingSerializer(existing_job, data=data)
+        else:
             data["company_user_id"] = user_id
             serializer = JobPostingSerializer(data=data)
-   
-       if serializer.is_valid():
-           serializer.save()
-           print("saved")
-           job_detail = serializer.instance
-   
-       if job_detail:
-           print("inside job detail")
-           return Response({"message": "Job  created or updated", "data": serializer.data}, status=status.HTTP_201_CREATED)
+    
+        if serializer.is_valid():
+            serializer.save(job_category=job_category)
+            job_detail = serializer.instance
+            return Response({"message": "Job created or updated", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-       else:
-           return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+       #reworked Jobpostingview by dhanoop
 
 
 class JobGetingingUserAPI(APIView):

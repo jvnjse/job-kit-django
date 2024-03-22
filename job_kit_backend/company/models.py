@@ -1,6 +1,7 @@
 from django.db import models
 from authentication.models import CustomUser
 from employee.models import Skill
+from administrator.models import JobCategory
 
 
 
@@ -67,6 +68,7 @@ class JobDetail(models.Model):
     company_user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
     job_title = models.CharField(max_length=100)
     job_description = models.TextField()
+    job_category = models.ForeignKey(JobCategory, on_delete=models.CASCADE, related_name='jobs', blank=True)
     qualifications_requirements = models.TextField()
     location = models.CharField(max_length=100)
     WORK_MODE_CHOICES = [
