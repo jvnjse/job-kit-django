@@ -13,7 +13,7 @@ from .models import (Company,
                      JobDetail,)
 
 from authentication.models import CustomUser
-from employee.models import Skill
+from employee.models import Skill, Employee
 from administrator.models import JobCategory
 
 from .serializers import (CompanySerializer,
@@ -21,6 +21,7 @@ from .serializers import (CompanySerializer,
                           CompanyListSerializer,
                           OrganisationListSerializer,
                           JobPostingSerializer,
+                          JobDetailSerializer,
                           EmployeeDepartmentSerializer,)
 
 
@@ -344,3 +345,38 @@ class EmployeeDepartment(APIView):
         serializer = EmployeeDepartmentSerializer(data=departments_list, many=True)
         serializer.is_valid()
         return Response(serializer.data)
+    
+class JobsByCategoryAPIView(APIView):
+    def get(self, request):
+        category_name = request.query_params.get('category_name', None)
+        if category_name is None:
+            return Response({"error": "Category name parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            category = JobCategory.objects.get(category_name=category_name)
+            jobs = JobDetail.objects.filter(job_category=category)
+            serializer = JobDetailSerializer(jobs, many=True)
+            return Response(serializer.data)
+        except JobCategory.DoesNotExist:
+            return Response({"error": "Category does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+class JobsByCategoryAndSkillsAPIView(APIView):
+    def get(self, request):
+        category_name = request.query_params.get('category_name')
+        employee_id = request.query_params.get('employee_id')
+
+        if category_name is None or employee_id is None:
+            return Response({"error": "Both category_name and employee_id parameters are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            category = JobCategory.objects.get(category_name=category_name)
+            employee = Employee.objects.get(id=employee_id)
+            jobs_by_category = JobDetail.objects.filter(job_category=category)
+            jobs_by_skills = JobDetail.objects.filter(tags__in=employee.skills.all()).distinct()
+            jobs = jobs_by_category.intersection(jobs_by_skills)
+            serializer = JobDetailSerializer(jobs, many=True)
+            return Response(serializer.data)
+        except JobCategory.DoesNotExist:
+            return Response({"error": "Category does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        except Employee.DoesNotExist:
+            return Response({"error": "Employee does not exist"}, status=status.HTTP_404_NOT_FOUND)

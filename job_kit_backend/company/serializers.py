@@ -90,6 +90,11 @@ class JobPostingSerializer(serializers.ModelSerializer):
                 job_detail.tags.add(skill)
 
         return job_detail
+    
+class JobDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobDetail
+        fields = '__all__'
 
 
 
