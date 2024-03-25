@@ -8,17 +8,12 @@ from employee.models import Skill
 class Department(models.Model):#extra------------
     name = models.CharField(max_length=100)
 
-
-class CompanySector(models.Model):
-    sector_name = models.CharField(max_length=100, unique=True)
-    departments = models.ManyToManyField(Department) #extra----
-    company_user_id = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, blank=True, null=True
-    )#extra-------------------------------------------------------
-    is_verified = models.BooleanField(default=False)
-
+    
     def __str__(self):
-        return self.sector_name
+        return f"{self.name} (ID: {self.id})"
+
+
+
     
 class Company(models.Model):
     company_user_id = models.ForeignKey(
@@ -34,11 +29,23 @@ class Company(models.Model):
     profile_image = models.ImageField(upload_to="company_logo", null=True)
     is_verified = models.BooleanField(default=False)
     company_website = models.CharField(max_length=100, null=True)
-    company_sectors = models.ManyToManyField(CompanySector, blank=True)
+    # company_sectors = models.ManyToManyField(CompanySector, blank=True)
 
     def __str__(self):
-        return self.company_name
+         return f"{self.company_name} (ID: {self.id})"
 
+class CompanySector(models.Model):
+    sector_name = models.CharField(max_length=100)
+    departments = models.ManyToManyField(Department) #extra----
+    company_user_id = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        limit_choices_to={'user_type': 'company'},
+    )#extra-------------------------------------------------------company id or user id
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.sector_name
 
 class Organization(models.Model):
     organization_name = models.CharField(max_length=255, unique=True)
@@ -55,14 +62,18 @@ class Company_Employee(models.Model):
     employee_phone_number = models.CharField(max_length=20, null=True)
     employee_email = models.CharField(max_length=50, null=True)
     employee_department = models.ManyToManyField(Department) 
-
-
-class CompanyDepartment(models.Model):
-    department_name = models.ManyToManyField(Department) 
-    sector = models.ForeignKey(CompanySector, on_delete=models.CASCADE, null=True)
-
+    
     def __str__(self):
-        return self.department_name
+        return f"{self.employee_name} (ID: {self.id})"
+
+#----------------------this section may not be needed trying another logic----------------
+# class CompanyDepartment(models.Model):
+#     department_name = models.ManyToManyField(Department) 
+#     sector = models.ForeignKey(CompanySector, on_delete=models.CASCADE, null=True)
+
+#     def __str__(self):
+#         return f"{self.department_name} (ID: {self.id})"
+#---------------------------------------------------------------------------------------------
 
 
 

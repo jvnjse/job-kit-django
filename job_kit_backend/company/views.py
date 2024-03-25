@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from .models import (Company,
                      Company_Employee,
-                     CompanyDepartment,
+                    #  CompanyDepartment, remove the model
                      CompanySector,
                      Organization,
                      JobDetail,
@@ -22,8 +22,9 @@ from .serializers import (CompanySerializer,
                           CompanyListSerializer,
                           OrganisationListSerializer,
                           JobPostingSerializer,
-                          DepartmentSerializer
-                        #   EmployeeDepartmentSerializer,
+                          DepartmentSerializer,
+                          CompanySectorSerializer
+                       
                         )
 
 
@@ -189,36 +190,108 @@ class CompanyEmployeeAPIView(APIView):
              return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+#-------------------------commented this logic and trying another logic-------------------------
+# class UpdateSectorAndDepartments(APIView):
+#     def post(self, request):
+#         user_id = request.data.get("user_id")
+#         sectors = request.data.get("sectors", [])
+#         departments = request.data.get("departments", [])
 
-class UpdateSectorAndDepartments(APIView):
+#         try:
+#             user = Company.objects.get(company_user_id=user_id)
+#         except CustomUser.DoesNotExist:
+#             return Response("User not found.", status=status.HTTP_404_NOT_FOUND)
+
+#         for sector_name in sectors:
+#             sector, _ = CompanySector.objects.get_or_create(sector_name=sector_name)
+#             user.company_sectors.add(sector)
+
+#         for department_data in departments:
+#             sector_name = department_data.get("sector_name")
+#             department_name = department_data.get("department_name")
+
+#             sector, _ = CompanySector.objects.get_or_create(sector_name=sector_name)
+#             department, _ = CompanyDepartment.objects.get_or_create(
+#                 sector=sector,
+#                 department_name=department_name,
+#             )
+
+#         return Response(
+#             f"Sectors and departments updated for user ID {user_id}.",
+#             status=status.HTTP_200_OK,
+#         )
+#----------------------------------------------------------------------------------------
+
+
+#-----------------------------------new logic start-------------------------------
+class CompanySectorDepartmentView(APIView):
+    def get(self, request, company_user_id):
+        sectors= CompanySector.objects.filter(company_user_id=company_user_id)
+        serializer =CompanySectorSerializer(sectors, many=True)
+        return Response(serializer.data)
     def post(self, request):
-        user_id = request.data.get("user_id")
-        sectors = request.data.get("sectors", [])
-        departments = request.data.get("departments", [])
+        data = request.data
+        department_names = data.get("departments", [])
+        print(department_names, "department_names")
 
-        try:
-            user = Company.objects.get(company_user_id=user_id)
-        except CustomUser.DoesNotExist:
-            return Response("User not found.", status=status.HTTP_404_NOT_FOUND)
+        if not department_names:
+             return Response(
+                 {"error": "departments is required"}, status=status.HTTP_400_BAD_REQUEST
+             )
+ 
+        departments = []
+        for department_name in department_names:
+             department, created = Department.objects.get_or_create(name=department_name)
+             departments.append(department.id)
 
-        for sector_name in sectors:
-            sector, _ = CompanySector.objects.get_or_create(sector_name=sector_name)
-            user.company_sectors.add(sector)
+        data["departments"] = departments
+        serializer = CompanySectorSerializer(data=request.data)
 
-        for department_data in departments:
-            sector_name = department_data.get("sector_name")
-            department_name = department_data.get("department_name")
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # def post(self, request):
+    #     data = request.data
+    #     departments = data.get("departments", [])
+    #     print(departments, "departments")
 
-            sector, _ = CompanySector.objects.get_or_create(sector_name=sector_name)
-            department, _ = CompanyDepartment.objects.get_or_create(
-                sector=sector,
-                department_name=department_name,
-            )
+    #     if not departments:
+    #          return Response(
+    #              {"error": "departments is required"}, status=status.HTTP_400_BAD_REQUEST
+    #          )
+ 
+    #     departments = []
+    #     for department in departments:
+    #          department, created = Department.objects.get_or_create(name=department)
+    #          department.append(department.id)
 
-        return Response(
-            f"Sectors and departments updated for user ID {user_id}.",
-            status=status.HTTP_200_OK,
-        )
+    #     data["departments"] = departments
+    #     serializer = CompanySectorSerializer(data=request.data)
+
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class CompanySectorView(APIView):
+    def get(self, request):
+        sector_names = CompanySector.objects.values_list('sector_name', flat=True).distinct()
+        return Response(sector_names)
+
+from django.shortcuts import get_object_or_404
+
+class CompanySpecificDepartment(APIView):
+    def get(self, request, company_user_id):
+        # Assuming CompanySector has a foreign key to Department
+        departments_ids = CompanySector.objects.filter(company_user_id=company_user_id).values_list('departments', flat=True).distinct()
+        departments_names = Department.objects.filter(id__in=departments_ids).values_list('name', flat=True)
+        
+        return Response(departments_names)
+
+
+#--------------------------------------new logic end-------------------------------
     
 
 class CompanyListView(APIView):

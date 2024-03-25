@@ -3,16 +3,27 @@ from .models import (Company,
                      Company_Employee,
                      Organization,
                      JobDetail,
-                     Department,)
+                     Department,
+                     CompanySector,)
 from employee.models import Skill
 
 
 class CompanySerializer(serializers.ModelSerializer):
-    company_sectors = serializers.StringRelatedField(many=True)
+    # company_sectors = serializers.StringRelatedField(many=True)
 
     class Meta:
         model = Company
         fields = "__all__"
+
+#--------------------new logic start----------------------------------
+class CompanySectorSerializer(serializers.ModelSerializer):
+    
+
+    class Meta:
+        model = CompanySector
+        fields = "__all__"        
+
+#----------------------new logic end-----------------------------------      
 
 
 
