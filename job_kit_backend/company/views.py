@@ -226,7 +226,7 @@ class CompanyEmployeeAPIView(APIView):
 #-----------------------------------new logic start-------------------------------
 class CompanySectorDepartmentView(APIView):
     def get(self, request, company_user_id):
-        sectors= CompanySector.objects.filter(company_user_id=company_user_id)
+        sectors= CompanySector.objects.filter(company_user_id=company_user_id, is_verified = True)
         serializer =CompanySectorSerializer(sectors, many=True)
         return Response(serializer.data)
     def post(self, request):
@@ -277,7 +277,7 @@ class CompanySectorDepartmentView(APIView):
 
 class CompanySectorView(APIView):
     def get(self, request):
-        sector_names = CompanySector.objects.values_list('sector_name', flat=True).distinct()
+        sector_names = CompanySector.objects.filter(is_verified=True).values_list('sector_name', flat=True).distinct()
         return Response(sector_names)
 
 from django.shortcuts import get_object_or_404
@@ -410,7 +410,7 @@ class JobGetingingUserAPI(APIView):
     
 class DepartmentApi(APIView):#addedd-----------------------
     def get(self, request):
-         departments = Department.objects.all() 
+         departments = Department.objects.filter(is_verified = True) 
          serializer = DepartmentSerializer(departments, many=True)
          return Response(serializer.data)
-    
+     

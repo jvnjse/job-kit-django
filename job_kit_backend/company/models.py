@@ -7,7 +7,7 @@ from employee.models import Skill
 # Create your models here.
 class Department(models.Model):#extra------------
     name = models.CharField(max_length=100)
-
+    is_verified = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.name} (ID: {self.id})"

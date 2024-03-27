@@ -10,7 +10,15 @@ from employee.models import Skill
 
 class CompanySerializer(serializers.ModelSerializer):
     # company_sectors = serializers.StringRelatedField(many=True)
-
+    company_sectors = serializers.SerializerMethodField()
+    
+    def get_company_sectors(self, obj):
+        # Get the CustomUser instance associated with the Company instance
+        custom_user = obj.company_user_id
+        # Get the CompanySector instances related to the CustomUser instance
+        sectors = CompanySector.objects.filter(company_user_id=custom_user)
+        # Return a list of sector names
+        return [sector.sector_name for sector in sectors]
     class Meta:
         model = Company
         fields = "__all__"
