@@ -1,5 +1,6 @@
 from django.db import models
 from authentication.models import CustomUser
+from administrator.models import JobCategory
 
 
 # Create your models here.
@@ -9,6 +10,10 @@ class Skill(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.capitalize()
+        super().save(*args, **kwargs)
 
 class Employee(models.Model):
     user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -22,9 +27,11 @@ class Employee(models.Model):
     state = models.CharField(max_length=255)
     pin_code = models.CharField(max_length=10)
     skills = models.ManyToManyField(Skill, blank=True)
+    job_category = job_category = models.ForeignKey(JobCategory, on_delete=models.CASCADE, blank=True, null=True)
+    
 
     def __str__(self):
-        return self.full_name
+        return f"{self.user_id} - {self.full_name}"
     
 
 class EmployeeEducation(models.Model):

@@ -361,19 +361,30 @@ class JobsByCategoryAPIView(APIView):
             return Response({"error": "Category does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
 class JobsByCategoryAndSkillsAPIView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure user is authenticated
+    
     def get(self, request):
-        category_name = request.query_params.get('category_name')
-        employee_id = request.query_params.get('employee_id')
+        category_id = request.query_params.get('category_id')
+        user_id = request.user.id  # Retrieve user ID from the authenticated user
 
-        if category_name is None or employee_id is None:
-            return Response({"error": "Both category_name and employee_id parameters are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if category_id is None:
+            return Response({"error": "category_id parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            category = JobCategory.objects.get(category_name=category_name)
-            employee = Employee.objects.get(id=employee_id)
+            # Retrieve the category and employee objects
+            category = JobCategory.objects.get(id=category_id)
+            employee = Employee.objects.get(user_id=user_id)  
+
+            # Check if the selected category matches the employee's job category
+            if category != employee.job_category:
+                return Response({"error": "Selected category does not match employee's job category"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Filter jobs by category and skills
             jobs_by_category = JobDetail.objects.filter(job_category=category)
             jobs_by_skills = JobDetail.objects.filter(tags__in=employee.skills.all()).distinct()
             jobs = jobs_by_category.intersection(jobs_by_skills)
+
+            # Serialize and return the filtered jobs
             serializer = JobDetailSerializer(jobs, many=True)
             return Response(serializer.data)
         except JobCategory.DoesNotExist:

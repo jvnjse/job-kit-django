@@ -15,6 +15,12 @@ class SkillSerializer(serializers.ModelSerializer):
 
 class EmployeeSerializer(serializers.ModelSerializer):
     skills = serializers.StringRelatedField(many=True)
+    job_category_name = serializers.SerializerMethodField()
+
+    def get_job_category_name(self, obj):
+        if obj.job_category:
+            return obj.job_category.category_name
+        return None
 
     class Meta:
         model = Employee

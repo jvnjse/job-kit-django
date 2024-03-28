@@ -5,6 +5,7 @@ from .models import (Employee,
                      EmployeeExperience,
                      Skill,)
 
+from administrator.models import JobCategory
 from authentication.models import CustomUser
 from company.models import Organization, Company
 
@@ -24,13 +25,14 @@ class EmployeePersonalInfo(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        user_id = kwargs["user_id"]
+        user_id = request.user.id
+        print("Logged-in user's id:", user_id)  # For debugging
         try:
             employee = Employee.objects.get(user_id=user_id)
             serializer = EmployeeSerializer(employee)
             return Response(serializer.data)
         except Employee.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, *args, **kwargs):
         user_id = request.data.get("user_id")
@@ -311,7 +313,9 @@ class EmployeeSkillsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
+        print("Requested user_id:", user_id)
         employee = get_object_or_404(Employee, user_id=user_id)
+        print("Found employee:", employee)
         skills = employee.skills.all()
         skill_serializer = SkillSerializer(skills, many=True)
         return Response(skill_serializer.data, status=status.HTTP_200_OK)
@@ -353,3 +357,56 @@ class EmployeeSkillsAPIView(APIView):
             return Response(
                 {"error": "Skill name is required"}, status=status.HTTP_400_BAD_REQUEST
             )
+        
+class JobCategoryCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        category_id = request.data.get("category_id")
+        if not category_id:
+            return Response({"error": "Category ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Retrieve the selected job category
+            job_category = JobCategory.objects.get(id=category_id)
+        except JobCategory.DoesNotExist:
+            return Response({"error": "Job category does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+      
+        user = request.user
+
+        try:
+            # Check if there's an employee associated with the logged-in user
+            employee = Employee.objects.get(user_id=user.id)
+            # Associate the job category with the employee
+            employee.job_category = job_category
+            employee.save()
+            return Response({"message": "Job category selected successfully"}, status=status.HTTP_200_OK)
+        except Employee.DoesNotExist:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+class JobCategoryUpdateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        category_id = request.data.get("category_id")
+        if not category_id:
+            return Response({"error": "Category ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Retrieve the selected job category
+            job_category = JobCategory.objects.get(id=category_id)
+        except JobCategory.DoesNotExist:
+            return Response({"error": "Job category does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+
+        try:
+            # Check if there's an employee associated with the logged-in user
+            employee = Employee.objects.get(user_id=user.id)
+            # Update the job category associated with the employee
+            employee.job_category = job_category
+            employee.save()
+            return Response({"message": "Job category updated successfully"}, status=status.HTTP_200_OK)
+        except Employee.DoesNotExist:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)

@@ -91,7 +91,20 @@ class JobPostingSerializer(serializers.ModelSerializer):
 
         return job_detail
     
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['name']  # Assuming 'name' is the field representing the skill name
+
+class JobCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobCategory
+        fields = ['category_name']  # Assuming 'category_name' is the field representing the category name
+
 class JobDetailSerializer(serializers.ModelSerializer):
+    job_category = JobCategorySerializer()
+    tags = SkillSerializer(many=True)
+
     class Meta:
         model = JobDetail
         fields = '__all__'

@@ -4,7 +4,8 @@ from .views import ( EmployeePersonalInfo,
                      SingleEducationView,
                      EmployeeExperienceView,
                      SingleExperienceView,
-                     EmployeeSkillsAPIView,)
+                     EmployeeSkillsAPIView,
+                     JobCategoryCreateAPIView)
 urlpatterns = [
     path("employee/<int:user_id>/",EmployeePersonalInfo.as_view(),name="employee_personal_info"),
     path("employee/education/",EmployeeEducationView.as_view(),name="employee_education"),
@@ -12,4 +13,6 @@ urlpatterns = [
     path("employee/experience/",EmployeeExperienceView.as_view(),name="employee_experience"),
     path("employee/experience/<int:experience_id>/",SingleExperienceView.as_view(),name="single_experience"),
     path("employees/<int:user_id>/skills/",EmployeeSkillsAPIView.as_view(),name="employee-skills"),
+    path('create-job-category/', JobCategoryCreateAPIView.as_view(), name='create-job-category'),
+
 ]
